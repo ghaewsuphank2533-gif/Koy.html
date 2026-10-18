@@ -1,0 +1,1091 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b0d1b">
+<title>ท่องโลกภาษี AR — เกมการเรียนรู้ท่องอวกาศ ป.3</title>
+
+<!-- Google Fonts TH Sarabun New (Sarabun) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+<!-- MediaPipe Pose JS -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+<style>
+:root {
+  --font-base: 'TH Sarabun New', 'Sarabun', sans-serif;
+  --bg-color: #060713;
+  --panel-bg: rgba(15, 18, 42, 0.88);
+  --primary-color: #3b82f6;
+  --direct-color: #00f0ff;
+  --indirect-color: #ff2a8d;
+  --neon-yellow: #facc15;
+  --neon-purple: #a855f7;
+  --text-main: #ffffff;
+  --text-sub: #cbd5e1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100vh;
+  height: -webkit-fill-available;
+  overflow: hidden;
+  font-family: var(--font-base);
+  font-size: 25px;
+  background-color: var(--bg-color);
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(0, 240, 255, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(255, 42, 141, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 60%);
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Background Animated Stars */
+.space-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: transparent url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400"><circle cx="20" cy="40" r="1.5" fill="%23ffffff" opacity="0.8"/><circle cx="120" cy="180" r="1" fill="%2300f0ff" opacity="0.6"/><circle cx="280" cy="90" r="2" fill="%23ff2a8d" opacity="0.7"/><circle cx="340" cy="310" r="1.2" fill="%23ffffff" opacity="0.9"/><circle cx="80" cy="330" r="1.8" fill="%23facc15" opacity="0.5"/></svg>') repeat;
+  animation: spaceMove 60s linear infinite;
+  z-index: 0;
+}
+
+@keyframes spaceMove {
+  from { background-position: 0 0; }
+  to { background-position: 1000px 1000px; }
+}
+
+/* Floating Animations for Cartoon Avatars */
+@keyframes floatGentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(0,240,255,0.6)); }
+  50% { filter: drop-shadow(0 0 18px rgba(0,240,255,0.9)); }
+}
+
+/* App Main Container Frame */
+.app-frame {
+  width: 100vw;
+  height: 100vh;
+  max-width: 1100px;
+  max-height: 820px;
+  background: var(--panel-bg);
+  border: 1.5px solid rgba(0, 240, 255, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .app-frame {
+    border-radius: 0;
+    border: none;
+    padding: 8px;
+  }
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  flex-shrink: 0;
+}
+
+.brand {
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+.badge-tag {
+  background: linear-gradient(135deg, #00f0ff, #a855f7);
+  color: #060713;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+  color: var(--text-sub);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+.dot.active {
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+}
+
+.main-stage {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  overflow-y: auto;
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .game-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 6px;
+  }
+}
+
+.camera-panel {
+  background: rgba(8, 10, 28, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 18px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.camera-box {
+  width: 100%;
+  height: 250px;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  border: 2px solid rgba(0, 240, 255, 0.6);
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+}
+
+@media (max-width: 768px) {
+  .camera-box {
+    height: 180px;
+  }
+}
+
+#webcam, #pose-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+#pose-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.sensor-guide {
+  width: 100%;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 10px;
+  padding: 4px 6px;
+  font-size: clamp(14px, 1.2vw, 18px);
+  text-align: center;
+}
+
+.question-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  justify-content: space-between;
+}
+
+.game-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-pill {
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-weight: 700;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 3px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.question-card {
+  flex: 1;
+  background: linear-gradient(145deg, rgba(20, 26, 60, 0.9), rgba(10, 12, 35, 0.95));
+  border-radius: 18px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  box-shadow: inset 0 0 25px rgba(0, 240, 255, 0.1), 0 8px 25px rgba(0,0,0,0.5);
+  min-height: 100px;
+  position: relative;
+}
+
+.question-text {
+  font-size: clamp(20px, 2.2vw, 32px);
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+.meter-wrap {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+.meter-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--direct-color);
+  box-shadow: 0 0 12px var(--direct-color);
+  transition: width 0.1s linear, background-color 0.2s;
+}
+
+.answers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.answer-btn {
+  font-family: var(--font-base);
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+
+.answer-btn.direct {
+  background: rgba(0, 240, 255, 0.12);
+  color: #00f0ff;
+  border-color: rgba(0, 240, 255, 0.6);
+}
+.answer-btn.indirect {
+  background: rgba(255, 42, 141, 0.12);
+  color: #ff2a8d;
+  border-color: rgba(255, 42, 141, 0.6);
+}
+.answer-btn:hover, .answer-btn:active {
+  transform: translateY(-2px) scale(1.02);
+  filter: brightness(1.25);
+}
+
+.btn {
+  font-family: var(--font-base);
+  font-size: clamp(20px, 1.8vw, 26px);
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  touch-action: manipulation;
+}
+
+.btn-main {
+  background: linear-gradient(135deg, #00f0ff, #3b82f6);
+  color: #060713;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+}
+.btn-main:hover, .btn-main:active {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
+}
+
+.btn-pink {
+  background: linear-gradient(135deg, #ff2a8d, #a855f7);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(255, 42, 141, 0.4);
+}
+.btn-pink:hover, .btn-pink:active {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(255, 42, 141, 0.7);
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 7, 19, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  padding: 16px;
+  border-radius: 24px;
+}
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-card {
+  background: linear-gradient(160deg, #141738, #0a0c20);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  border-radius: 22px;
+  padding: 20px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 35px rgba(0, 240, 255, 0.25);
+}
+.explain-box {
+  background: rgba(0, 240, 255, 0.07);
+  border-left: 4px solid var(--direct-color);
+  padding: 10px 14px;
+  border-radius: 10px;
+  text-align: left;
+  margin: 10px 0;
+  font-size: clamp(18px, 1.6vw, 24px);
+  color: var(--text-sub);
+}
+
+.table-wrap {
+  max-height: 180px;
+  overflow-y: auto;
+  margin: 8px 0;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: clamp(18px, 1.6vw, 24px);
+}
+th, td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+th { color: var(--direct-color); font-weight: 700; }
+
+/* Animated Cartoon Space Characters */
+.cartoon-avatar {
+  display: inline-block;
+  animation: floatGentle 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(0,240,255,0.5));
+}
+.cartoon-avatar.bob {
+  animation: floatBob 2.5s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<div class="space-stars"></div>
+
+<div class="app-frame">
+  <header class="topbar">
+    <div class="brand">
+      <span>👨‍🚀</span> ท่องโลกภาษี <span class="badge-tag">🚀 Space AR</span>
+    </div>
+    <div class="status-bar">
+      <span class="dot" id="status-dot"></span>
+      <span id="camera-status">โหมดโต้ตอบ</span>
+    </div>
+  </header>
+
+  <!-- Main Activity Frame Stage -->
+  <main class="main-stage">
+
+    <section id="screen-start" class="screen active">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px;">
+        
+        <!-- Space Mascot Icon -->
+        <div style="position: relative;">
+          <div class="cartoon-avatar" style="font-size: 70px;">🛸</div>
+          <div class="cartoon-avatar bob" style="font-size: 40px; position: absolute; right: -20px; top: -10px;">👨‍🚀</div>
+        </div>
+
+        <div style="font-size: 22px; color: var(--direct-color); font-weight: 700; text-shadow: 0 0 10px rgba(0,240,255,0.4);">
+          🌌 ภารกิจอวกาศภาษี • สังคมศึกษา ป.3
+        </div>
+        <h1 style="font-size: clamp(28px, 3.2vw, 42px); font-weight: 700; text-shadow: 0 0 15px rgba(255,255,255,0.8);">
+          สำรวจประเภทภาษีน่ารู้ AR
+        </h1>
+        <p style="font-size: clamp(22px, 2vw, 26px); color: var(--text-sub); max-width: 620px;">
+          เกมจำลองยานอวกาศเพื่อจำแนก <b>ภาษีทางตรง</b> และ <b>ภาษีทางอ้อม</b> ผ่านระบบกล้องตรวจจับท่าทาง AR
+        </p>
+        
+        <div style="width: 100%; max-width: 380px; text-align: left; margin: 8px 0;">
+          <label style="font-size: clamp(20px, 1.8vw, 24px); font-weight: 700; display: block; margin-bottom: 4px; color: var(--direct-color);">
+            👨‍🚀 ชื่อกลุ่มนักเรียน / ยานอวกาศ
+          </label>
+          <input id="group-input" maxlength="30" placeholder="เช่น ยานอพอลโล หรือ ทีมดาวเสาร์" 
+                 style="width: 100%; font-family: var(--font-base); font-size: 24px; padding: 8px 14px; border-radius: 12px; border: 1.5px solid var(--direct-color); background: rgba(6, 7, 19, 0.8); color: #fff; outline: none; box-shadow: 0 0 10px rgba(0,240,255,0.2);">
+        </div>
+        
+        <button class="btn btn-main" id="start-btn" style="width: 100%; max-width: 380px;">
+          ทะยานสู่อวกาศ 🚀
+        </button>
+      </div>
+    </section>
+
+    <section id="screen-rules" class="screen">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="font-size: clamp(24px, 2.2vw, 28px); font-weight: 700; color: #fff; text-shadow: 0 0 10px var(--direct-color);">
+          📡 คู่มือภารกิจอวกาศ (7 ข้อ • ข้อละ 20 วินาที • ❤️ 3 ดวง)
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0;">
+          <div style="background: rgba(0, 240, 255, 0.1); border: 1.5px solid var(--direct-color); border-radius: 16px; padding: 12px; text-align: center; box-shadow: 0 0 15px rgba(0,240,255,0.2);">
+            <div class="cartoon-avatar" style="font-size: 42px;">🙋‍♂️</div>
+            <strong style="color: var(--direct-color); font-size: 26px; display: block; margin-top: 4px;">ภาษีทางตรง</strong>
+            <p style="font-size: 22px; color: var(--text-sub);">ยกมือขวา (เซ็นเซอร์สีฟ้า) หรือกดปุ่ม</p>
+          </div>
+          <div style="background: rgba(255, 42, 141, 0.1); border: 1.5px solid var(--indirect-color); border-radius: 16px; padding: 12px; text-align: center; box-shadow: 0 0 15px rgba(255,42,141,0.2);">
+            <div class="cartoon-avatar bob" style="font-size: 42px;">🙋‍♀️</div>
+            <strong style="color: var(--indirect-color); font-size: 26px; display: block; margin-top: 4px;">ภาษีทางอ้อม</strong>
+            <p style="font-size: 22px; color: var(--text-sub);">ยกมือซ้าย (เซ็นเซอร์สีชมพู) หรือกดปุ่ม</p>
+          </div>
+        </div>
+
+        <div style="background: rgba(168, 85, 247, 0.15); border: 1px solid var(--neon-purple); padding: 10px; border-radius: 12px; font-size: 22px; color: var(--text-sub);">
+          💡 <b>คำแนะนำ:</b> หากแสงในห้องไม่เพียงพอหรือกล้องไม่จับภาพ สามารถกดปุ่มบนหน้าจอเพื่อตอบแทนได้ทันที
+        </div>
+
+        <button class="btn btn-pink" id="play-btn" style="width: 100%;">
+          ปล่อยยานเข้าสู่ภารกิจ 🛰️
+        </button>
+      </div>
+    </section>
+
+    <section id="screen-game" class="screen">
+      <div class="game-grid">
+        
+        <!-- Left Side: Camera & AR Sensor Category -->
+        <div class="camera-panel">
+          <div style="font-size: 20px; font-weight: 700; color: var(--direct-color); display: flex; align-items: center; gap: 6px;">
+            <span class="cartoon-avatar" style="font-size: 20px;">📡</span> AR Space Sensor
+          </div>
+          
+          <div class="camera-box">
+            <video id="webcam" playsinline autoplay muted></video>
+            <canvas id="pose-canvas"></canvas>
+          </div>
+
+          <div class="sensor-guide">
+            <div id="gesture-text" style="color: var(--text-sub);">เตรียมพร้อมตรวจจับสัญญานมือ...</div>
+          </div>
+        </div>
+
+        <!-- Right Side: Questions & Space HUD Category -->
+        <div class="question-panel">
+          <div class="game-hud">
+            <div class="hud-pill" id="q-number" style="color: var(--direct-color);">ข้อที่ 1 / 7</div>
+            <div class="hud-pill" id="timer-pill" style="color: var(--neon-yellow);">⏳ 20s</div>
+            <div class="hud-pill" id="lives-pill" style="color: var(--indirect-color);">❤️ ❤️ ❤️</div>
+          </div>
+
+          <div class="question-card">
+            <!-- Cartoon Space Satellite Mascot -->
+            <div class="cartoon-avatar" style="font-size: 28px; position: absolute; right: 12px; top: 10px;">🛰️</div>
+            
+            <div id="hud-group" style="font-size: 22px; color: var(--direct-color); margin-bottom: 4px;">
+              👨‍🚀 ยาน: -
+            </div>
+            <div class="question-text" id="question-text">กำลังโหลดสัญญาณสถานการณ์...</div>
+          </div>
+
+          <!-- Sensor Hold Progress Bar -->
+          <div class="meter-wrap">
+            <div class="meter-fill" id="meter-fill"></div>
+          </div>
+
+          <!-- Answer Selection Category -->
+          <div class="answers-grid">
+            <button class="answer-btn direct" id="card-direct">
+              <strong>ภาษีทางตรง</strong>
+              <span style="font-size: 18px; opacity: 0.9;">🙋‍♂️ มือขวา (สีฟ้า)</span>
+            </button>
+            <button class="answer-btn indirect" id="card-indirect">
+              <strong>ภาษีทางอ้อม</strong>
+              <span style="font-size: 18px; opacity: 0.9;">🙋‍♀️ มือซ้าย (สีชมพู)</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section id="screen-summary" class="screen">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="text-align: center;">
+          <div class="cartoon-avatar" style="font-size: 50px;">🏆</div>
+          <h2 style="font-size: clamp(26px, 2.5vw, 34px); color: var(--text-main); text-shadow: 0 0 10px var(--direct-color);" id="summary-title-header">
+            สรุปผลการสำรวจอวกาศ
+          </h2>
+          <p id="summary-group-display" style="font-size: 22px; color: var(--text-sub);">ทีมยาน: -</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: rgba(0, 240, 255, 0.1); border: 1.5px solid var(--direct-color); border-radius: 16px; padding: 10px; text-align: center;">
+            <span style="font-size: 20px; color: var(--text-sub);">พลังคะแนนถูกต้อง</span>
+            <div id="summary-score" style="font-size: 36px; font-weight: 700; color: var(--direct-color);">0/7</div>
+          </div>
+          <div style="background: rgba(255, 42, 141, 0.1); border: 1.5px solid var(--indirect-color); border-radius: 16px; padding: 10px; text-align: center;">
+            <span style="font-size: 20px; color: var(--text-sub);">เวลาโคจรทั้งหมด</span>
+            <div id="summary-time" style="font-size: 36px; font-weight: 700; color: var(--indirect-color);">00:00</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; font-size: 22px; color: var(--text-sub);" id="summary-wrong">
+          ส่งสัญญาณผิด/หมดเวลา 0 ครั้ง
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>อันดับ</th>
+                <th>ชื่อยานอวกาศ</th>
+                <th>คะแนน</th>
+                <th>เวลา</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-rows"></tbody>
+          </table>
+        </div>
+
+        <button class="btn btn-pink" id="again-btn" style="width: 100%;">
+          เริ่มภารกิจใหม่ 🔄
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Space Feedback Modal -->
+  <div id="modal-feedback" class="modal-overlay">
+    <div class="modal-card">
+      <div id="modal-icon" class="cartoon-avatar" style="font-size: 56px; margin-bottom: 6px;">✨</div>
+      <h2 id="modal-title" style="font-size: 32px; margin-bottom: 4px;">คำตอบถูกต้อง!</h2>
+      <div class="explain-box">
+        <strong>📘 บันทึกความรู้อวกาศ:</strong>
+        <div id="modal-explanation" style="margin-top: 4px;">...</div>
+      </div>
+      <p style="font-size: 22px; color: var(--text-sub);">เข้าสู่พิกัดถัดไปใน <b id="next-count" style="color: var(--direct-color);">3</b> วินาที</p>
+    </div>
+  </div>
+
+  <!-- Space Game Over Modal -->
+  <div id="modal-gameover" class="modal-overlay">
+    <div class="modal-card">
+      <div class="cartoon-avatar" style="font-size: 56px; margin-bottom: 6px;">👾</div>
+      <h2 style="color: var(--indirect-color); font-size: 32px;">ภารกิจยุติลง (Game Over)</h2>
+      <p style="margin: 10px 0; font-size: 24px; color: var(--text-sub);">เกราะพลังชีวิตหัวใจหมดลงแล้ว!</p>
+      <button class="btn btn-main" id="gameover-continue-btn" style="width: 100%;">ดูสรุปภารกิจ 📊</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+
+const questions = [
+  {q:'คุณพ่อจ่ายภาษีเงินได้บุคคลธรรมดาจากรายได้การทำงานประจำปี', a:'direct', e:'ภาษีเงินได้บุคคลธรรมดาจัดเก็บจากรายได้ของผู้มีรายได้โดยตรง โดยผู้มีรายได้เป็นผู้จ่ายให้รัฐบาลเอง'},
+  {q:'คุณแม่ซื้อขนมปังและนมสดที่ร้านสะดวกซื้อ มีภาษีมูลค่าเพิ่ม (VAT 7%) รวมอยู่ในใบเสร็จ', a:'indirect', e:'ภาษีมูลค่าเพิ่มจัดเก็บจากการซื้อสินค้า ผู้บริโภคเป็นผู้รับภาระภาษีผ่านราคาสินค้า'},
+  {q:'คุณปู่จ่ายภาษีที่ดินและสิ่งปลูกสร้างสำหรับบ้านและสวนผลไม้ให้เทศบาล', a:'direct', e:'ภาษีที่ดินจัดเก็บจากเจ้าของทรัพย์สินโดยตรง ผู้เป็นเจ้าของไม่สามารถผลักภาระภาษีนี้ให้ผู้อื่นได้'},
+  {q:'ร้านค้าสั่งซื้อของเล่นจากต่างประเทศเข้ามาขาย จึงต้องจ่ายภาษีศุลกากร (อากรขาเข้า)', a:'indirect', e:'ภาษีศุลกากรเรียกเก็บจากสินค้านำเข้า ซึ่งผู้ขายจะบวกรวมภาษีเข้ากับราคาสินค้า ทำให้ผู้ซื้อรับภาระแทน'},
+  {q:'พนักงานออฟฟิศถูกหักภาษีเงินได้ส่วนบุคคลออกจากเงินเดือนในทุกๆ เดือน', a:'direct', e:'ภาษีเงินได้คำนวณจากรายได้ของบุคคลนั้นๆ โดยตรง ถือเป็นภาษีทางตรง'},
+  {q:'คุณน้าซื้อตั๋วภาพยนตร์เพื่อเข้าชมภาพยนตร์ มีภาษีมูลค่าเพิ่มบวกรวมในราคาตั๋ว', a:'indirect', e:'ผู้ซื้อตั๋วรับภาระภาษีมูลค่าเพิ่มที่บวกรวมอยู่ในราคาตั๋วเรียบร้อยแล้ว จึงเป็นภาษีทางอ้อม'},
+  {q:'บริษัทขายเครื่องใช้ไฟฟ้า ชำระภาษีเงินได้นิติบุคคลจากกำไรสุทธิของการดำเนินงาน', a:'direct', e:'ภาษีเงินได้นิติบุคคลจัดเก็บจากผลกำไรของบริษัทหรือห้างหุ้นส่วนโดยตรง'},
+  {q:'คุณลุงซื้อน้ำมันรถยนต์ที่สถานบริการน้ำมัน ซึ่งมีภาษีสรรพสามิตรวมอยู่ในราคาน้ำมัน', a:'indirect', e:'ภาษีสรรพสามิตจัดเก็บจากสินค้าเฉพาะอย่าง ซึ่งถูกบวกรวมในราคาขาย ผู้ใช้น้ำมันจึงเป็นผู้รับภาระภาษีทางอ้อม'},
+  {q:'คุณตาได้รับมรดกเป็นที่ดินผืนใหญ่ และชำระภาษีการรับมรดกตามกฎหมาย', a:'direct', e:'ภาษีมรดกจัดเก็บจากผู้ได้รับมรดกโดยตรง ไม่สามารถผลักภาระภาษีไปให้ผู้อื่นได้'},
+  {q:'คุณแม่ซื้อน้ำหอมและเครื่องสำอางนำเข้าจากต่างประเทศที่มีภาษีสรรพสามิตรวมอยู่', a:'indirect', e:'ภาษีสรรพสามิตบวกเพิ่มในราคาสินค้าฟุ่มเฟือย ผู้ซื้อสินค้าเป็นผู้จ่ายภาษีนี้ผ่านราคาสินค้า'},
+  {q:'ครูสมศรีเปิดร้านขายของชำและจ่ายภาษีป้ายร้านค้าประจำปีให้เทศบาล', a:'direct', e:'ภาษีป้ายจัดเก็บจากเจ้าของป้ายชื่อร้านโดยตรง เพื่อนำเงินไปพัฒนาท้องถิ่น'},
+  {q:'นักเรียนซื้อสมุดและอุปกรณ์การเรียน ซึ่งมีภาษีมูลค่าเพิ่ม (VAT) รวมอยู่ในราคาสินค้า', a:'indirect', e:'ภาษีมูลค่าเพิ่มถูกคิดรวมไว้ในราคาสินค้าเรียบร้อยแล้ว ผู้ซื้อเป็นผู้รับภาระภาษีทางอ้อม'},
+  {q:'คุณลุงโอนกรรมสิทธิ์บ้านและที่ดินให้ลูกชาย จึงต้องชำระภาษีการโอนอสังหาริมทรัพย์', a:'direct', e:'ภาษีการโอนทรัพย์สินจัดเก็บจากผู้ทำนิติกรรมการโอนโดยตรง'},
+  {q:'คุณพ่อซื้อตั๋วเครื่องบินเดินทางไปต่างจังหวัด ซึ่งมีภาษีสนามบินและ VAT รวมอยู่', a:'indirect', e:'ค่าภาษีถูกบวกรวมในราคาตั๋วเครื่องบิน ผู้โดยสารเป็นผู้รับภาระภาษีผ่านการซื้อบริการ'},
+  {q:'คุณน้าทำธุรกิจส่วนตัว และยื่นชำระภาษีเงินได้บุคคลธรรมดาตามรอบปีงบประมาณ', a:'direct', e:'เป็นการจ่ายภาษีจากรายได้ส่วนบุคคลให้แก่รัฐโดยตรง ไม่สามารถผลักภาระภาษีให้ผู้อื่นได้'}
+];
+
+let groupName = '';
+let qIndex = 0;
+let currentQ = null;
+let seconds = 20;
+let timerId = null;
+let nextTimerId = null;
+let startedAt = 0;
+let locked = false;
+let correctCount = 0;
+let wrongCount = 0;
+let lives = 3;
+let usedIds = [];
+
+let leaderBoardData = [
+  {name:'ยานดาวเสาร์ 🛸', score:'7/7', time:'01:05'},
+  {name:'ทีมสุริยะ 🚀', score:'6/7', time:'01:12'},
+  {name:'ยานจรวดเร็ว 🛰️', score:'5/7', time:'01:25'}
+];
+
+let rawStream = null;
+let poseModel = null;
+let handHold = { direct: 0, indirect: 0 };
+let lastPoseAnswer = 0;
+let cameraOn = false;
+
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc.start(); osc.stop(ctx.currentTime + 0.08);
+    } else if (type === 'correct') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start(); osc.stop(ctx.currentTime + 0.35);
+    } else if (type === 'wrong') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240, ctx.currentTime);
+      osc.frequency.setValueAtTime(140, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start(); osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch(e) {}
+}
+
+function showScreen(name) {
+  ['start', 'rules', 'game', 'summary'].forEach(s => {
+    const el = $('screen-' + s);
+    if(el) el.classList.toggle('active', s === name);
+  });
+}
+
+const formatTime = s => {
+  s = Math.max(0, Math.floor(s));
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+};
+
+function startTimer() {
+  clearInterval(timerId);
+  seconds = 20;
+  $('timer-pill').textContent = '⏳ ' + seconds + 's';
+  timerId = setInterval(() => {
+    seconds--;
+    $('timer-pill').textContent = '⏳ ' + seconds + 's';
+    if(seconds <= 0) {
+      clearInterval(timerId);
+      handleAnswer(null, true);
+    }
+  }, 1000);
+}
+
+function pickQuestion() {
+  if (qIndex >= 7 || lives <= 0) {
+    endGame();
+    return;
+  }
+  
+  locked = false;
+  $('meter-fill').style.width = '0%';
+  
+  let available = questions.map((q, idx) => idx).filter(idx => !usedIds.includes(idx));
+  if(available.length === 0) {
+    usedIds = [];
+    available = questions.map((q, idx) => idx);
+  }
+  
+  const chosenIdx = available[Math.floor(Math.random() * available.length)];
+  usedIds.push(chosenIdx);
+  currentQ = questions[chosenIdx];
+  
+  $('q-number').textContent = `ข้อที่ ${qIndex + 1} / 7`;
+  $('question-text').textContent = currentQ.q;
+  $('lives-pill').textContent = '❤️ '.repeat(lives);
+  $('card-direct').disabled = false;
+  $('card-indirect').disabled = false;
+  
+  startTimer();
+}
+
+function handleAnswer(ans, isTimeout = false) {
+  if (locked) return;
+  locked = true;
+  clearInterval(timerId);
+  
+  $('card-direct').disabled = true;
+  $('card-indirect').disabled = true;
+  
+  const isCorrect = !isTimeout && ans === currentQ.a;
+  
+  if (isCorrect) {
+    correctCount++;
+    playSound('correct');
+    $('modal-icon').textContent = '🛸';
+    $('modal-title').textContent = 'ถูกต้อง!';
+    $('modal-title').style.color = '#00f0ff';
+  } else {
+    wrongCount++;
+    lives--;
+    playSound('wrong');
+    $('modal-icon').textContent = isTimeout ? '⏰' : '💥';
+    $('modal-title').textContent = isTimeout ? 'หมดเวลาส่งสัญญาณ!' : 'ยังไม่ถูกต้อง!';
+    $('modal-title').style.color = '#ff2a8d';
+    $('lives-pill').textContent = '❤️ '.repeat(Math.max(0, lives));
+  }
+  
+  $('modal-explanation').textContent = currentQ.e;
+  
+  if (lives <= 0) {
+    setTimeout(() => {
+      endGame(true);
+    }, 500);
+    return;
+  }
+  
+  const modal = $('modal-feedback');
+  modal.classList.add('active');
+  $('next-count').textContent = '3';
+  
+  let leftSec = 3;
+  nextTimerId = setInterval(() => {
+    leftSec--;
+    $('next-count').textContent = leftSec;
+    if (leftSec <= 0) {
+      clearInterval(nextTimerId);
+      modal.classList.remove('active');
+      qIndex++;
+      pickQuestion();
+    }
+  }, 1000);
+}
+
+function endGame(isGameOver = false) {
+  clearInterval(timerId);
+  clearInterval(nextTimerId);
+  
+  $('modal-feedback').classList.remove('active');
+  $('modal-gameover').classList.remove('active');
+
+  const totalSec = Math.floor((Date.now() - startedAt) / 1000);
+  
+  if (isGameOver) {
+    $('summary-title-header').textContent = '👾 ภารกิจอวกาศภาษียุติลง (Game Over)';
+    $('summary-title-header').style.color = 'var(--indirect-color)';
+  } else {
+    $('summary-title-header').textContent = '🏆 สรุปผลการสำรวจอวกาศภาษี';
+    $('summary-title-header').style.color = 'var(--text-main)';
+  }
+
+  $('summary-group-display').textContent = 'ยาน: ' + groupName;
+  $('summary-score').textContent = correctCount + '/7';
+  $('summary-time').textContent = formatTime(totalSec);
+  $('summary-wrong').textContent = 'ส่งสัญญาณผิด/หมดเวลา ' + wrongCount + ' ครั้ง';
+  
+  leaderBoardData.unshift({ name: groupName, score: `${correctCount}/7`, time: formatTime(totalSec) });
+  leaderBoardData = leaderBoardData.slice(0, 5);
+  
+  const tbody = $('leaderboard-rows');
+  tbody.innerHTML = leaderBoardData.map((item, idx) => `
+    <tr>
+      <td><b>#${idx + 1}</b></td>
+      <td>${item.name}</td>
+      <td><span style="color:#00f0ff;font-weight:bold">${item.score}</span></td>
+      <td>${item.time}</td>
+    </tr>
+  `).join('');
+  
+  showScreen('summary');
+}
+
+function drawSensorOverlay(ctx, x, y, colorHex, labelText, progress) {
+  ctx.save();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = colorHex;
+  ctx.fillStyle = colorHex;
+  ctx.shadowColor = colorHex;
+  ctx.shadowBlur = 12;
+
+  ctx.beginPath();
+  ctx.arc(x, y, 24, 0, 2 * Math.PI);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, 18, -Math.PI / 2, (-Math.PI / 2) + (2 * Math.PI * progress));
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(x, y, 6, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.shadowBlur = 6;
+  ctx.font = 'bold 14px "TH Sarabun New", Sarabun, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.fillText(labelText, x, y - 30);
+
+  ctx.restore();
+}
+
+async function initCamera() {
+  if (cameraOn) return;
+  const statusDot = $('status-dot');
+  const cameraStatus = $('camera-status');
+  
+  if (!navigator.mediaDevices?.getUserMedia) {
+    if (cameraStatus) cameraStatus.textContent = 'โหมดคลิกตอบ';
+    return;
+  }
+  
+  try {
+    if (cameraStatus) cameraStatus.textContent = 'กำลังสตาร์ตเซ็นเซอร์...';
+    rawStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+      audio: false
+    });
+
+    const videoEl = $('webcam');
+    if (videoEl) {
+      videoEl.srcObject = rawStream;
+      await videoEl.play().catch(() => {});
+    }
+
+    if (!window.Pose) {
+      if (cameraStatus) cameraStatus.textContent = 'กล้องพร้อมใช้งาน';
+      return;
+    }
+
+    poseModel = new window.Pose({
+      locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
+    poseModel.setOptions({ modelComplexity: 0, smoothLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+    
+    poseModel.onResults(results => {
+      const canvas = $('pose-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (results.poseLandmarks) {
+        const lm = results.poseLandmarks;
+        const gameScreen = $('screen-game');
+        
+        if (!gameScreen || !gameScreen.classList.contains('active') || locked) return;
+        
+        const rightWrist = lm[16], rightShoulder = lm[12];
+        const leftWrist = lm[15], leftShoulder = lm[11];
+        
+        const raisedRight = rightWrist && rightShoulder && rightWrist.visibility > 0.5 && rightWrist.y < rightShoulder.y - 0.05;
+        const raisedLeft = leftWrist && leftShoulder && leftWrist.visibility > 0.5 && leftWrist.y < leftShoulder.y - 0.05;
+
+        if (raisedRight) {
+          handHold.direct++;
+          handHold.indirect = 0;
+          const progress = Math.min(1, handHold.direct / 8);
+          $('meter-fill').style.width = (progress * 100) + '%';
+          $('meter-fill').style.background = '#00f0ff';
+          $('gesture-text').textContent = '🎯 ตรวจจับ: ยกมือขวา (ทางตรง)';
+
+          drawSensorOverlay(ctx, rightWrist.x * canvas.width, rightWrist.y * canvas.height, '#00f0ff', 'ทางตรง', progress);
+        } else if (raisedLeft) {
+          handHold.indirect++;
+          handHold.direct = 0;
+          const progress = Math.min(1, handHold.indirect / 8);
+          $('meter-fill').style.width = (progress * 100) + '%';
+          $('meter-fill').style.background = '#ff2a8d';
+          $('gesture-text').textContent = '🎯 ตรวจจับ: ยกมือซ้าย (ทางอ้อม)';
+
+          drawSensorOverlay(ctx, leftWrist.x * canvas.width, leftWrist.y * canvas.height, '#ff2a8d', 'ทางอ้อม', progress);
+        } else {
+          handHold.direct = 0;
+          handHold.indirect = 0;
+          $('meter-fill').style.width = '0%';
+          $('gesture-text').textContent = '📡 ยกมือขวา (ฟ้า) / ยกมือซ้าย (ชมพู)';
+        }
+
+        if (handHold.direct >= 8 && Date.now() - lastPoseAnswer > 2000) {
+          lastPoseAnswer = Date.now();
+          handleAnswer('direct');
+        } else if (handHold.indirect >= 8 && Date.now() - lastPoseAnswer > 2000) {
+          lastPoseAnswer = Date.now();
+          handleAnswer('indirect');
+        }
+      }
+    });
+
+    cameraOn = true;
+    if (statusDot) statusDot.classList.add('active');
+    if (cameraStatus) cameraStatus.textContent = 'เซ็นเซอร์พร้อม';
+
+    async function sendLoop() {
+      if (!cameraOn) return;
+      if (videoEl && videoEl.readyState >= 2 && poseModel) {
+        try { await poseModel.send({ image: videoEl }); } catch (err) {}
+      }
+      requestAnimationFrame(sendLoop);
+    }
+    sendLoop();
+
+  } catch (e) {
+    cameraOn = false;
+    if (cameraStatus) cameraStatus.textContent = 'โหมดคลิกตอบ';
+  }
+}
+
+function beginGame() {
+  const val = $('group-input').value.trim();
+  groupName = val ? val : 'ทีมยานอวกาศ ป.3';
+  qIndex = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  lives = 3;
+  usedIds = [];
+  startedAt = Date.now();
+  
+  if ($('hud-group')) $('hud-group').textContent = '👨‍🚀 ยาน: ' + groupName;
+  showScreen('game');
+  pickQuestion();
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  $('start-btn').addEventListener('click', () => {
+    playSound('click');
+    initCamera();
+    showScreen('rules');
+  });
+
+  $('play-btn').addEventListener('click', () => {
+    playSound('click');
+    beginGame();
+  });
+
+  $('again-btn').addEventListener('click', () => {
+    playSound('click');
+    showScreen('start');
+  });
+
+  $('gameover-continue-btn').addEventListener('click', () => {
+    playSound('click');
+    $('modal-gameover').classList.remove('active');
+    endGame();
+  });
+
+  $('card-direct').addEventListener('click', () => {
+    playSound('click');
+    handleAnswer('direct');
+  });
+
+  $('card-indirect').addEventListener('click', () => {
+    playSound('click');
+    handleAnswer('indirect');
+  });
+
+  showScreen('start');
+  initCamera();
+});
+
+})();
+</script>
+</body>
+</html>
